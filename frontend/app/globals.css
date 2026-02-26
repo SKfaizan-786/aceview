@@ -1,0 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@import "tailwindcss";
+
+/* ============================================
+   Neumorphism Design System — Pure CSS Classes
+   ============================================ */
+
+.neu {
+  background: #e0e5ec;
+  box-shadow: 8px 8px 16px #b8bec7, -8px -8px 16px #ffffff;
+}
+
+.neu-sm {
+  background: #e0e5ec;
+  box-shadow: 4px 4px 8px #b8bec7, -4px -4px 8px #ffffff;
+}
+
+.neu-xs {
+  background: #e0e5ec;
+  box-shadow: 2px 2px 5px #b8bec7, -2px -2px 5px #ffffff;
+}
+
+.neu-inset {
+  background: #e0e5ec;
+  box-shadow: inset 4px 4px 8px #b8bec7, inset -4px -4px 8px #ffffff;
+}
+
+.neu-inset-sm {
+  background: #e0e5ec;
+  box-shadow: inset 2px 2px 5px #b8bec7, inset -2px -2px 5px #ffffff;
+}
+
+.neu-pressed {
+  background: #e0e5ec;
+  box-shadow: inset 6px 6px 12px #b8bec7, inset -6px -6px 12px #ffffff;
+}
+
+.neu-flat {
+  background: #e0e5ec;
+  box-shadow: 6px 6px 12px #b8bec7, -6px -6px 12px #ffffff;
+}
+
+/* Active/Pressed State */
+.neu:active,
+.neu-sm:active,
+.neu-xs:active,
+.neu-flat:active {
+  box-shadow: inset 4px 4px 8px #b8bec7, inset -4px -4px 8px #ffffff;
+}
+
+/* Border Radius */
+.r-neu {
+  border-radius: 20px;
+}
+
+.r-neu-lg {
+  border-radius: 28px;
+}
+
+.r-neu-xl {
+  border-radius: 36px;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes slide-in-from-bottom {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-from-right {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes float-anim {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.anim-in {
+  animation-fill-mode: both;
+}
+
+.anim-slide-up {
+  animation: slide-in-from-bottom 0.4s ease-out both;
+}
+
+.anim-slide-right {
+  animation: slide-in-from-right 0.4s ease-out both;
+}
+
+.anim-fade {
+  animation: fade-in 0.4s ease-out both;
+}
+
+.anim-float {
+  animation: float-anim 6s ease-in-out infinite;
+}
+
+/* Scrollbar */
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scroll-thin::-webkit-scrollbar-thumb {
+  background-color: #b8bec7;
+  border-radius: 3px;
+}
+
+.scroll-thin::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+/* ============================================
+   Base
+   ============================================ */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #e0e5ec;
+  color: #2d3436;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
