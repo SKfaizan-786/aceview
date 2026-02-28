@@ -1,5 +1,5 @@
 🎯 AI Interview Coach - Complete Production-Level PRD
-Project Codename: InterviewIQ
+Project Codename: AceView
 
 📋 Table of Contents
 
@@ -19,7 +19,7 @@ Post-Hackathon Roadmap
 Problem Statement
 73% of qualified candidates fail job interviews due to poor body language, filler words, and lack of confidence - NOT lack of skills. Students and professionals have no way to practice with real-time feedback before high-stakes interviews.
 Solution
-InterviewIQ is a real-time AI interview coach that watches your posture, listens to your speech, analyzes your answers, and provides instant feedback to help you improve. Think of it as having a personal interview coach available 24/7 at a fraction of the cost.
+AceView is a real-time AI interview coach that watches your posture, listens to your speech, analyzes your answers, and provides instant feedback to help you improve. Think of it as having a personal interview coach available 24/7 at a fraction of the cost.
 Unique Value Propositions
 
 Multi-modal Analysis - Combines video (body language) + audio (speech patterns) + text (answer quality)

@@ -1,0 +1,37 @@
+[project]
+name = "aceview-backend"
+version = "0.0.0"
+requires-python = ">=3.12"
+
+dependencies = [
+  "python-dotenv>=1.0",
+  "vision-agents-plugins-deepgram",
+  "vision-agents-plugins-elevenlabs",
+  "vision-agents-plugins-anthropic",
+  "vision-agents-plugins-getstream",
+  "vision-agents-plugins-openai",
+  "vision-agents-plugins-smart-turn",
+  "vision-agents-plugins-gemini",
+  "vision-agents-plugins-vogent",
+  "vision-agents-plugins-ultralytics",
+  "vision-agents",
+  "openai>=1.101.0",
+  "google-genai>=1.33.0",
+  "pytest>=8.0",
+  "pyjwt>=2.11.0",
+  "fastapi>=0.133.0",
+  "uvicorn>=0.41.0",
+  "pydantic>=2.12.5",
+]
+
+[tool.uv.sources]
+"vision-agents-plugins-deepgram" = {path = "../Vision-Agents/plugins/deepgram", editable=true}
+"vision-agents-plugins-elevenlabs" = {path = "../Vision-Agents/plugins/elevenlabs", editable=true}
+"vision-agents-plugins-anthropic" = {path = "../Vision-Agents/plugins/anthropic", editable=true}
+"vision-agents-plugins-getstream" = {path = "../Vision-Agents/plugins/getstream", editable=true}
+"vision-agents-plugins-openai" = {path = "../Vision-Agents/plugins/openai", editable=true}
+"vision-agents-plugins-smart-turn" = {path = "../Vision-Agents/plugins/smart_turn", editable=true}
+"vision-agents-plugins-gemini" = {path = "../Vision-Agents/plugins/gemini", editable=true}
+"vision-agents-plugins-vogent" = {path = "../Vision-Agents/plugins/vogent", editable=true}
+"vision-agents-plugins-ultralytics" = {path = "../Vision-Agents/plugins/ultralytics", editable=true}
+"vision-agents" = {path = "../Vision-Agents/agents-core", editable=true}

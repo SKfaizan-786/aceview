@@ -5,12 +5,15 @@ import { useInterviewStore } from '@/store/interviewStore';
 import { MessageSquare } from 'lucide-react';
 
 export default function LiveTranscript() {
-  const { transcript } = useInterviewStore();
+  // Use selectors — only re-render when transcript or partialTranscript change,
+  // not on every posture/eye-contact metrics tick.
+  const transcript = useInterviewStore((s) => s.transcript);
+  const partialTranscript = useInterviewStore((s) => s.partialTranscript);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [transcript]);
+  }, [transcript, partialTranscript]);
 
   const highlightFillerWords = (text: string) => {
     const fillerWords = ['umm', 'uh', 'like', 'you know', 'basically', 'actually'];
@@ -39,7 +42,7 @@ export default function LiveTranscript() {
 
       {/* Content */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-3 scroll-thin" style={{ scrollbarWidth: 'thin', scrollbarColor: '#b8bec7 transparent' }}>
-        {transcript.length === 0 ? (
+        {transcript.length === 0 && !partialTranscript ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="neu-sm rounded-full w-16 h-16 flex items-center justify-center mb-4">
               <MessageSquare className="w-8 h-8 text-[#b2bec3]" />
@@ -48,11 +51,20 @@ export default function LiveTranscript() {
             <p className="text-[#b2bec3] text-sm mt-2">Filler words will be highlighted in real-time</p>
           </div>
         ) : (
-          transcript.map((line, index) => (
-            <div key={index} className="neu-inset-sm r-neu p-4 text-[#2d3436] text-sm leading-relaxed anim-slide-up"
-              dangerouslySetInnerHTML={{ __html: highlightFillerWords(line) }}
-            />
-          ))
+          <>
+            {transcript.map((line, index) => (
+              <div key={index} className="neu-inset-sm r-neu p-4 text-[#2d3436] text-sm leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: highlightFillerWords(line) }}
+              />
+            ))}
+            {/* Live partial — greyed out "typing" preview */}
+            {partialTranscript && (
+              <div className="p-4 text-[#b2bec3] text-sm leading-relaxed italic border border-dashed border-[#b8bec7] rounded-2xl">
+                {partialTranscript}
+                <span className="inline-block w-1.5 h-3.5 bg-[#6c5ce7] ml-1 animate-pulse rounded-sm" />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
