@@ -33,7 +33,7 @@ export default function StreamProvider({ children }: { children: React.ReactNode
                 const userId = `guest_${Math.random().toString(36).slice(2, 7)}`;
                 const callId = `interview_${Math.random().toString(36).slice(2, 10)}`;
 
-                const response = await fetch('http://localhost:8000/api/token', {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}/api/token`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: userId }),
@@ -111,7 +111,7 @@ export default function StreamProvider({ children }: { children: React.ReactNode
                 // agent starts its own ICE negotiation. Two concurrent ICE setups on the
                 // same SFU session cause the agent's WebSocket to be dropped.
                 await new Promise((r) => setTimeout(r, 2500));
-                const aiResponse = await fetch('http://localhost:8000/api/start-session', {
+                const aiResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}/api/start-session`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ call_id: callId }),
