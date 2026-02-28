@@ -80,6 +80,10 @@ export default function StreamProvider({ children }: { children: React.ReactNode
                         if (payload.text) {
                             store.addTranscriptLine(payload.text, payload.filler_count ?? 0);
                         }
+                        // Real WPM-based pace score — updates after each sentence
+                        if (typeof payload.pace_score === 'number') {
+                            store.updateMetrics({ speechPaceScore: payload.pace_score });
+                        }
                     } else if (payload.type === 'ai_nudge') {
                         if (payload.message) {
                             store.addAiNudge(payload.message);

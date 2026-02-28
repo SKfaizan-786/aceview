@@ -57,7 +57,7 @@ async def create_agent(**kwargs) -> Agent:
 FILLER_WORDS = {"umm", "um", "hmm", "hm", "mm", "mhm", "uh", "like", "you know", "basically", "actually", "literally", "right", "so"}
 
 async def join_call(agent: Agent, call_type: str, call_id: str, **kwargs) -> None:
-    import asyncio
+    import asyncio, time
     from vision_agents.core.stt.events import STTTranscriptEvent, STTPartialTranscriptEvent
 
     call = await agent.create_call(
@@ -66,15 +66,15 @@ async def join_call(agent: Agent, call_type: str, call_id: str, **kwargs) -> Non
     )
 
     async with agent.join(call):
-        # The SDK event bus is TYPE-ANNOTATION-DRIVEN.
-        # Without the type hint on the parameter, the event bus registers the
-        # handler for zero event types and it is NEVER called.
-        # We need two separate handlers: one for partial (live typing) and one
-        # for final transcripts (filler-word counting + history).
+        # Tracks real speaking duration for WPM pace score calculation
+        _pace = {"words": 0, "speaking_secs": 0.0, "turn_start": None}
 
         async def on_partial_transcript(event: STTPartialTranscriptEvent):
             """Send live partial transcript so the user sees text as they speak."""
             if event.text:
+                # Mark start of speaking turn for WPM calculation
+                if _pace["turn_start"] is None:
+                    _pace["turn_start"] = time.monotonic()
                 try:
                     await agent.send_custom_event({
                         "type": "transcript_partial",
@@ -84,7 +84,7 @@ async def join_call(agent: Agent, call_type: str, call_id: str, **kwargs) -> Non
                     pass  # connection may be momentarily unavailable
 
         async def on_final_transcript(event: STTTranscriptEvent):
-            """Send final transcript with filler-word count to the frontend."""
+            """Send final transcript with filler-word count and real WPM pace score."""
             if event.text:
                 text = event.text.strip()
                 normalized = text.lower()
@@ -95,12 +95,28 @@ async def join_call(agent: Agent, call_type: str, call_id: str, **kwargs) -> Non
                     filler_count += len(re.findall(r'\b' + re.escape(phrase) + r'\b', normalized))
                 single_fillers = FILLER_WORDS - set(MULTI_WORD_FILLERS)
                 words = re.split(r'\W+', normalized)
+                word_count = sum(1 for w in words if w)
                 filler_count += sum(1 for w in words if w in single_fillers)
+
+                # Accumulate real speaking time and calculate WPM
+                _pace["words"] += word_count
+                if _pace["turn_start"] is not None:
+                    _pace["speaking_secs"] += time.monotonic() - _pace["turn_start"]
+                    _pace["turn_start"] = None
+                # Default 82 until we have ≥3s and ≥5 words of data
+                pace_score = 82
+                if _pace["speaking_secs"] >= 3.0 and _pace["words"] >= 5:
+                    wpm = (_pace["words"] / _pace["speaking_secs"]) * 60
+                    # 130 WPM = perfect (100). Drops linearly to 0 at 50 or 210 WPM
+                    pace_score = max(0, min(100, int((wpm - 50) / 80 * 100) if wpm <= 130 else int(100 - (wpm - 130) / 80 * 100)))
+                    logger.info(f"[Pace] {wpm:.0f} WPM → score={pace_score}")
+
                 try:
                     await agent.send_custom_event({
                         "type": "transcript",
                         "text": text,
                         "filler_count": filler_count,
+                        "pace_score": pace_score,
                     })
                 except Exception:
                     pass

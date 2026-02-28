@@ -24,7 +24,7 @@ LEFT_HIP = 11
 RIGHT_HIP = 12
 
 CONF_THRESH = 0.3  # Minimum keypoint confidence to trust
-NUDGE_COOLDOWN = 15.0  # seconds between same nudge
+NUDGE_COOLDOWN = 10.0  # seconds between same nudge
 
 
 class AceViewVisionProcessor(YOLOPoseProcessor):
@@ -85,8 +85,16 @@ class AceViewVisionProcessor(YOLOPoseProcessor):
         return min(100, int(sum(scores) / len(scores))) if scores else 0
 
     def _calculate_eye_contact(self, kpts: np.ndarray) -> Tuple[int, bool]:
-        """Returns (eye_contact_score 0-100, face_visible bool)."""
-        nose = kpts[NOSE]
+        """
+        Returns (eye_contact_score 0-100, face_visible bool).
+
+        Strategy: YOLO can't track eyeball direction, but it CAN detect head
+        rotation via which ears are visible. When you look left your right ear
+        pops into view; when you look right your left ear appears. We combine:
+          1. Ear asymmetry  → main head-rotation signal (very reliable)
+          2. Nose offset    → secondary refinement for slight tilts
+        """
+        nose  = kpts[NOSE]
         l_eye = kpts[LEFT_EYE]
         r_eye = kpts[RIGHT_EYE]
         l_ear = kpts[LEFT_EAR]
@@ -96,25 +104,33 @@ class AceViewVisionProcessor(YOLOPoseProcessor):
         if not face_visible:
             return 0, False
 
-        # Both eyes + nose: estimate gaze from nose symmetry between eyes
+        # ── Ear asymmetry signal ──────────────────────────────────────────
+        # Both ears visible + similar confidence → facing camera → boost score
+        # One ear clearly stronger → head rotated that way → penalise heavily
+        l_ear_conf = l_ear[2] if l_ear[2] > CONF_THRESH else 0.0
+        r_ear_conf = r_ear[2] if r_ear[2] > CONF_THRESH else 0.0
+        ear_total  = l_ear_conf + r_ear_conf
+
+        if ear_total > 0.05:
+            # asymmetry 0 = perfectly symmetric, 1 = only one ear visible
+            ear_asymmetry = abs(l_ear_conf - r_ear_conf) / ear_total
+            # Heavy penalty for head rotation (asymmetry > 0.4 = clearly turned)
+            ear_penalty = int(ear_asymmetry * 80)  # up to 80-point drop
+        else:
+            ear_penalty = 0  # no ears detected — can't infer rotation
+
+        # ── Nose symmetry refinement (horizontal offset) ──────────────────
+        nose_penalty = 0
         if l_eye[2] > CONF_THRESH and r_eye[2] > CONF_THRESH and nose[2] > CONF_THRESH:
             eye_cx = (l_eye[0] + r_eye[0]) / 2
-            eye_w = abs(l_eye[0] - r_eye[0])
+            eye_w  = abs(l_eye[0] - r_eye[0])
             if eye_w > 5:
                 offset = abs(nose[0] - eye_cx) / eye_w
-                looking_forward = nose[1] > (l_eye[1] + r_eye[1]) / 2
-                if looking_forward:
-                    return max(30, int(100 - offset * 160)), True
-                else:
-                    return max(25, int(70 - offset * 120)), True
+                nose_penalty = int(offset * 100)   # up to ~50-point drop when very offset
 
-        # Partial face
-        if l_eye[2] > CONF_THRESH or r_eye[2] > CONF_THRESH:
-            if l_ear[2] > CONF_THRESH and r_ear[2] > CONF_THRESH:
-                return 30, True  # looking sideways
-            return 55, True  # partial
-
-        return 40, True
+        total_penalty = min(95, ear_penalty + nose_penalty)
+        score = max(5, 100 - total_penalty)
+        return score, True
 
     def _should_nudge(self, key: str) -> bool:
         now = time.time()
@@ -127,24 +143,24 @@ class AceViewVisionProcessor(YOLOPoseProcessor):
         if not self.agent:
             return
         import asyncio
-        msg = None
-        key = None
+
+        async def _safe_nudge(payload):
+            try:
+                await self.agent.send_custom_event(payload)
+            except Exception:
+                pass
+
+        # All three are checked independently — multiple nudges can fire at once,
+        # each with its own 10-second cooldown so they don't spam.
         if not face_visible:
-            key, msg = "no_face", "Make sure your face is clearly visible on camera"
-        elif posture < 55:
-            key, msg = "bad_posture", "Sit up straight and square your shoulders"
-        elif eye_contact < 45:
-            key, msg = "low_eye", "Look directly at your camera to maintain eye contact"
-
-        if key and msg and self._should_nudge(key):
-
-            async def _safe_nudge(payload):
-                try:
-                    await self.agent.send_custom_event(payload)
-                except Exception:
-                    pass
-
-            asyncio.create_task(_safe_nudge({"type": "ai_nudge", "message": msg}))
+            if self._should_nudge("no_face"):
+                asyncio.create_task(_safe_nudge({"type": "ai_nudge", "message": "Make sure your face is clearly visible on camera"}))
+        if posture < 70:
+            if self._should_nudge("bad_posture"):
+                asyncio.create_task(_safe_nudge({"type": "ai_nudge", "message": "Sit up straight and square your shoulders"}))
+        if eye_contact < 65:
+            if self._should_nudge("low_eye"):
+                asyncio.create_task(_safe_nudge({"type": "ai_nudge", "message": "Look directly at your camera to maintain eye contact"}))
 
     async def _process_pose_async(
         self, frame_array: np.ndarray

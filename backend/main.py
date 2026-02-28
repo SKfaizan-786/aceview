@@ -117,14 +117,19 @@ Recent Transcript (last 10 lines):
 Generate a concise, encouraging post-session report in valid JSON with these exact keys:
 {{
   "overall_score": <integer 0-100>,
-  "grade": "<letter grade A/B/C/D>",
+  "grade": "<letter grade: A if overall>=85, B if >=70, C if >=55, D if below 55>",
   "summary": "<2 sentence encouraging summary>",
   "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
   "improvements": ["<improvement 1>", "<improvement 2>", "<improvement 3>"],
   "tip_of_the_day": "<one specific actionable tip>"
 }}
 
-Be specific, actionable, and encouraging. Return ONLY valid JSON, no markdown.
+STRICT RULES:
+- Only list a metric as a STRENGTH if its score is 75 or above. Never praise a metric below 75.
+- Only list a metric as an AREA TO IMPROVE if its score is below 75.
+- If all scores are below 75, all three strengths should be about effort, attitude, or communication content — NOT posture/eye contact/pace.
+- Be honest but encouraging. A Grade D should acknowledge significant room for improvement.
+- Return ONLY valid JSON, no markdown.
 """
 
         response = await client.chat.completions.create(

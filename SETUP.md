@@ -29,15 +29,22 @@ Your folder structure must look like:
 
 ---
 
-## 2. Apply the SDK Patch
+## 2. Apply the SDK Patches
 
-One file in the Vision Agents SDK must be patched to fix a critical SFU edge-node routing bug
-(`participant not found` on SetPublisher). See [patches/README.md](patches/README.md) for full details.
+Two files in the Vision Agents SDK must be patched. Both patched files are in the `patches/` folder.
 
+**Patch 1 — SFU routing fix** (fixes `participant not found` crash on agent join):
 ```powershell
 cd AceView
 Copy-Item "patches\stream_edge_transport.py" "..\Vision-Agents\plugins\getstream\vision_agents\plugins\getstream\stream_edge_transport.py"
 ```
+
+**Patch 2 — Deepgram STT fix** (fixes `TypeError: unexpected keyword argument 'filler_words'` crash — without this the AI agent cannot connect and you get NO transcription):
+```powershell
+Copy-Item "patches\deepgram_stt.py" "..\Vision-Agents\plugins\deepgram\vision_agents\plugins\deepgram\deepgram_stt.py"
+```
+
+> ⚠️ **Both patches are required.** Skipping Patch 2 will cause a silent crash — the AI joins the call but immediately disconnects with a TypeError.
 
 ---
 

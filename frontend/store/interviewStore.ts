@@ -11,6 +11,15 @@ interface Metrics {
   confidenceState: ConfidenceState;
 }
 
+// Internal accumulators — not exposed to UI, just used for average calculation
+interface SessionAccumulator {
+  postureSum: number;
+  eyeSum: number;
+  paceSum: number;
+  paceCount: number; // pace updates separately (per sentence, not per frame)
+  frameCount: number; // posture + eye update per YOLO frame
+}
+
 export interface SessionSummary {
   overall_score: number;
   grade: string;
@@ -28,6 +37,7 @@ interface InterviewStore {
   aiNudges: string[];
   sessionSummary: SessionSummary | null;
   isFetchingSummary: boolean;
+  _acc: SessionAccumulator; // internal — do not read in UI components
   startSession: () => void;
   endSession: () => void;
   updateMetrics: (metrics: Partial<Metrics>) => void;
@@ -35,11 +45,34 @@ interface InterviewStore {
   setPartialTranscript: (text: string) => void;
   addAiNudge: (nudge: string) => void;
   clearAiNudges: () => void;
-  fetchSummary: () => Promise<void>;
+  fetchSummary: (avgMetrics: { posture: number; eye: number; pace: number }) => Promise<void>;
   // Mock triggers for demo
   triggerSlouch: () => void;
   triggerFillerWord: () => void;
   triggerNudge: () => void;
+}
+
+const DEFAULT_METRICS: Metrics = {
+  confidenceScore: 75,
+  postureScore: 85,
+  eyeContactScore: 78,
+  speechPaceScore: 82,
+  fillerWordCount: 0,
+  confidenceState: 'high',
+};
+
+const DEFAULT_ACC: SessionAccumulator = {
+  postureSum: 0,
+  eyeSum: 0,
+  paceSum: 0,
+  paceCount: 0,
+  frameCount: 0,
+};
+
+function computeConfidence(posture: number, eye: number, pace: number): { score: number; state: ConfidenceState } {
+  const avg = (posture + eye + pace) / 3;
+  const state: ConfidenceState = avg < 60 ? 'low' : avg < 75 ? 'medium' : 'high';
+  return { score: Math.round(avg), state };
 }
 
 export const useInterviewStore = create<InterviewStore>((set, get) => ({
@@ -47,16 +80,10 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
   sessionSummary: null,
   isFetchingSummary: false,
   partialTranscript: '',
-  metrics: {
-    confidenceScore: 75,
-    postureScore: 85,
-    eyeContactScore: 78,
-    speechPaceScore: 82,
-    fillerWordCount: 0,
-    confidenceState: 'high',
-  },
+  metrics: { ...DEFAULT_METRICS },
   transcript: [],
   aiNudges: [],
+  _acc: { ...DEFAULT_ACC },
 
   startSession: () => set({
     isSessionActive: true,
@@ -64,23 +91,54 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
     transcript: [],
     partialTranscript: '',
     aiNudges: [],
-    metrics: {
-      confidenceScore: 75,
-      postureScore: 85,
-      eyeContactScore: 78,
-      speechPaceScore: 82,
-      fillerWordCount: 0,
-      confidenceState: 'high',
-    },
+    metrics: { ...DEFAULT_METRICS },
+    _acc: { ...DEFAULT_ACC },
   }),
 
   endSession: () => {
-    set({ isSessionActive: false });
-    // Auto-fetch summary when session ends
-    get().fetchSummary();
+    const { _acc, metrics } = get();
+
+    // Compute session averages (fall back to last live value if no data)
+    const avgPosture = _acc.frameCount > 0 ? Math.round(_acc.postureSum / _acc.frameCount) : metrics.postureScore;
+    const avgEye = _acc.frameCount > 0 ? Math.round(_acc.eyeSum / _acc.frameCount) : metrics.eyeContactScore;
+    const avgPace = _acc.paceCount > 0 ? Math.round(_acc.paceSum / _acc.paceCount) : metrics.speechPaceScore;
+
+    const { score: avgConfidence, state: avgState } = computeConfidence(avgPosture, avgEye, avgPace);
+
+    // Show the TRUE session averages on the right panel immediately
+    set({
+      isSessionActive: false,
+      metrics: {
+        ...metrics,
+        postureScore: avgPosture,
+        eyeContactScore: avgEye,
+        speechPaceScore: avgPace,
+        confidenceScore: avgConfidence,
+        confidenceState: avgState,
+      },
+    });
+
+    // Persist session record to localStorage for the dashboard
+    try {
+      const record = {
+        id: Date.now(),
+        date: new Date().toLocaleDateString('en-GB'),
+        score: avgConfidence,
+        posture: avgPosture,
+        eye: avgEye,
+        pace: avgPace,
+        fillerWords: metrics.fillerWordCount,
+      };
+      const existing = JSON.parse(localStorage.getItem('aceview_sessions') ?? '[]');
+      const updated = [record, ...existing].slice(0, 10); // keep last 10
+      localStorage.setItem('aceview_sessions', JSON.stringify(updated));
+    } catch (_) { }
+
+    // Fetch report card using those same averages
+    get().fetchSummary({ posture: avgPosture, eye: avgEye, pace: avgPace });
   },
 
-  fetchSummary: async () => {
+  fetchSummary: async ({ posture, eye, pace }) => {
     const state = get();
     set({ isFetchingSummary: true });
     try {
@@ -88,9 +146,9 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          posture_score: state.metrics.postureScore,
-          eye_contact_score: state.metrics.eyeContactScore,
-          speech_pace_score: state.metrics.speechPaceScore,
+          posture_score: posture,
+          eye_contact_score: eye,
+          speech_pace_score: pace,
           filler_word_count: state.metrics.fillerWordCount,
           transcript: state.transcript,
           duration_minutes: 5,
@@ -109,21 +167,41 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
 
   updateMetrics: (newMetrics) =>
     set((state) => {
-      const updatedMetrics = { ...state.metrics, ...newMetrics };
-      const avgScore = (
-        updatedMetrics.postureScore +
-        updatedMetrics.eyeContactScore +
-        updatedMetrics.speechPaceScore
-      ) / 3;
-      let confidenceState: ConfidenceState = 'high';
-      if (avgScore < 60) confidenceState = 'low';
-      else if (avgScore < 75) confidenceState = 'medium';
+      // Smooth display: move max ±10 pts per frame so numbers don't jump wildly
+      const smooth = (current: number, next: number) =>
+        Math.round(current + Math.max(-10, Math.min(10, next - current)));
+
+      const smoothed: Partial<Metrics> = { ...newMetrics };
+      if (newMetrics.postureScore !== undefined)
+        smoothed.postureScore = smooth(state.metrics.postureScore, newMetrics.postureScore);
+      if (newMetrics.eyeContactScore !== undefined)
+        smoothed.eyeContactScore = smooth(state.metrics.eyeContactScore, newMetrics.eyeContactScore);
+      if (newMetrics.speechPaceScore !== undefined)
+        smoothed.speechPaceScore = smooth(state.metrics.speechPaceScore, newMetrics.speechPaceScore);
+
+      const updated = { ...state.metrics, ...smoothed };
+
+      // Accumulate RAW values (not smoothed) for accurate session averages
+      const newAcc = { ...state._acc };
+      if (newMetrics.postureScore !== undefined) {
+        newAcc.postureSum += newMetrics.postureScore;
+        newAcc.eyeSum += (newMetrics.eyeContactScore ?? state.metrics.eyeContactScore);
+        newAcc.frameCount += 1;
+      }
+      if (newMetrics.speechPaceScore !== undefined) {
+        newAcc.paceSum += newMetrics.speechPaceScore;
+        newAcc.paceCount += 1;
+      }
+
+      const { score, state: confState } = computeConfidence(
+        updated.postureScore,
+        updated.eyeContactScore,
+        updated.speechPaceScore,
+      );
+
       return {
-        metrics: {
-          ...updatedMetrics,
-          confidenceScore: Math.round(avgScore),
-          confidenceState,
-        },
+        _acc: newAcc,
+        metrics: { ...updated, confidenceScore: score, confidenceState: confState },
       };
     }),
 
@@ -132,7 +210,7 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
   addTranscriptLine: (line, fillerCount) =>
     set((state) => ({
       transcript: [...state.transcript, line],
-      partialTranscript: '', // clear partial when final arrives
+      partialTranscript: '',
       metrics: {
         ...state.metrics,
         fillerWordCount: state.metrics.fillerWordCount + fillerCount,
@@ -166,6 +244,6 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
 
   triggerNudge: () =>
     set((state) => ({
-      aiNudges: [...state.aiNudges, 'ðŸ’¡ Mention specific metrics from your project'],
+      aiNudges: [...state.aiNudges, '💡 Mention specific metrics from your project'],
     })),
 }));
