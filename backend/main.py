@@ -1,4 +1,5 @@
 import os
+import logging
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +14,10 @@ from agents.interview_agent import create_agent, join_call
 
 load_dotenv()
 
-# We maintain the global launcher instance
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+)
 agent_launcher = AgentLauncher(create_agent=create_agent, join_call=join_call)
 
 @asynccontextmanager

@@ -16,7 +16,8 @@ export default function LiveTranscript() {
   }, [transcript, partialTranscript]);
 
   const highlightFillerWords = (text: string) => {
-    const fillerWords = ['umm', 'hmm', 'uh', 'like', 'you know', 'basically', 'actually', 'literally', 'right', 'so'];
+    // hmm is transcribed by Deepgram as mm/mhm/hm/um — include all variants
+    const fillerWords = ['umm', 'um', 'hmm', 'hm', 'mm', 'mhm', 'uh', 'like', 'you know', 'basically', 'actually', 'literally', 'right', 'so'];
     let result = text;
     fillerWords.forEach((word) => {
       const regex = new RegExp(`\\b${word}\\b`, 'gi');

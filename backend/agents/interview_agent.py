@@ -1,11 +1,13 @@
 import logging
 import os
 import re
+from pathlib import Path
 from typing import Any, Dict
 
 from dotenv import load_dotenv
 from vision_agents.core import Agent, AgentLauncher, Runner, User
 from vision_agents.plugins import deepgram, elevenlabs, openai, getstream
+from agents.vision_processor import AceViewVisionProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +32,8 @@ def setup_llm(model: str = "google/gemini-2.0-flash-001") -> openai.ChatCompleti
     )
     return llm
 
-from agents.vision_processor import AceViewVisionProcessor
+# Resolve model path relative to this file so it works regardless of CWD
+_MODEL_PATH = str(Path(__file__).parent.parent / "yolo26n-pose.pt")
 
 async def create_agent(**kwargs) -> Agent:
     llm = setup_llm()
@@ -40,7 +43,7 @@ async def create_agent(**kwargs) -> Agent:
         agent_user=User(name="AceView AI Coach", id="aceview_agent"),
         instructions=SYSTEM_PROMPT,
         processors=[
-            AceViewVisionProcessor(model_path="yolo26n-pose.pt", fps=3)
+            AceViewVisionProcessor(model_path=_MODEL_PATH, fps=3, conf_threshold=0.25)
         ],
         llm=llm,
         tts=elevenlabs.TTS(model_id="eleven_flash_v2_5"),
@@ -50,7 +53,8 @@ async def create_agent(**kwargs) -> Agent:
 
     return agent
 
-FILLER_WORDS = {"umm", "hmm", "uh", "like", "you know", "basically", "actually", "literally", "right", "so"}
+# hmm is often transcribed by Deepgram as "mm", "mhm", "hm", or "um"
+FILLER_WORDS = {"umm", "um", "hmm", "hm", "mm", "mhm", "uh", "like", "you know", "basically", "actually", "literally", "right", "so"}
 
 async def join_call(agent: Agent, call_type: str, call_id: str, **kwargs) -> None:
     import asyncio

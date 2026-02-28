@@ -41,6 +41,7 @@ class AceViewVisionProcessor(YOLOPoseProcessor):
         self.agent: Optional[Agent] = None
         self._last_metrics_sent = 0.0
         self._last_nudge_times: Dict[str, float] = {}
+        self._agent_warned = False  # only warn once if agent is None
 
     def attach_agent(self, agent: Agent) -> None:
         """Called automatically by the SDK when the agent starts."""
@@ -158,15 +159,25 @@ class AceViewVisionProcessor(YOLOPoseProcessor):
         eye_contact_score = 0
         face_visible = False
 
-        if pose_data.get("persons"):
-            kpts_list = pose_data["persons"][0].get("keypoints", [])
+        persons = pose_data.get("persons", [])
+        if persons:
+            kpts_list = persons[0].get("keypoints", [])
             if kpts_list and len(kpts_list) >= 13:
                 kpts = np.array(kpts_list)
                 posture_score = self._calculate_posture_score(kpts)
                 eye_contact_score, face_visible = self._calculate_eye_contact(kpts)
+                logger.info(f"[YOLO] posture={posture_score} eye={eye_contact_score} face={face_visible}")
+            else:
+                logger.debug(f"[YOLO] Person detected but insufficient keypoints ({len(kpts_list)})")
+        else:
+            logger.info("[YOLO] No person detected in frame (check lighting / sit closer to camera)")
 
         now = time.time()
-        if now - self._last_metrics_sent >= 1.0 and self.agent:
+        if not self.agent:
+            if not self._agent_warned:
+                logger.warning("[YOLO] self.agent is None -- attach_agent may not have been called")
+                self._agent_warned = True
+        elif now - self._last_metrics_sent >= 1.0:
             import asyncio
 
             async def _safe_send(data):
