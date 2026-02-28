@@ -31,7 +31,7 @@ interface InterviewStore {
   startSession: () => void;
   endSession: () => void;
   updateMetrics: (metrics: Partial<Metrics>) => void;
-  addTranscriptLine: (line: string, hasFillerWord: boolean) => void;
+  addTranscriptLine: (line: string, fillerCount: number) => void;
   setPartialTranscript: (text: string) => void;
   addAiNudge: (nudge: string) => void;
   clearAiNudges: () => void;
@@ -129,15 +129,13 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
 
   setPartialTranscript: (text) => set({ partialTranscript: text }),
 
-  addTranscriptLine: (line, hasFillerWord) =>
+  addTranscriptLine: (line, fillerCount) =>
     set((state) => ({
       transcript: [...state.transcript, line],
       partialTranscript: '', // clear partial when final arrives
       metrics: {
         ...state.metrics,
-        fillerWordCount: hasFillerWord
-          ? state.metrics.fillerWordCount + 1
-          : state.metrics.fillerWordCount,
+        fillerWordCount: state.metrics.fillerWordCount + fillerCount,
       },
     })),
 

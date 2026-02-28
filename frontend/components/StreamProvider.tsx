@@ -78,7 +78,7 @@ export default function StreamProvider({ children }: { children: React.ReactNode
                         }
                     } else if (payload.type === 'transcript') {
                         if (payload.text) {
-                            store.addTranscriptLine(payload.text, (payload.filler_count ?? 0) > 0);
+                            store.addTranscriptLine(payload.text, payload.filler_count ?? 0);
                         }
                     } else if (payload.type === 'ai_nudge') {
                         if (payload.message) {

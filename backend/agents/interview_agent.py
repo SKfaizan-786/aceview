@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from typing import Any, Dict
 
 from dotenv import load_dotenv
@@ -49,7 +50,7 @@ async def create_agent(**kwargs) -> Agent:
 
     return agent
 
-FILLER_WORDS = {"umm", "uh", "like", "you know", "basically", "actually", "literally", "right"}
+FILLER_WORDS = {"umm", "hmm", "uh", "like", "you know", "basically", "actually", "literally", "right", "so"}
 
 async def join_call(agent: Agent, call_type: str, call_id: str, **kwargs) -> None:
     import asyncio
@@ -82,10 +83,15 @@ async def join_call(agent: Agent, call_type: str, call_id: str, **kwargs) -> Non
             """Send final transcript with filler-word count to the frontend."""
             if event.text:
                 text = event.text.strip()
-                words = text.lower().split()
-                filler_count = sum(
-                    1 for w in words if w.strip(",.!?") in FILLER_WORDS
-                )
+                normalized = text.lower()
+                # Count multi-word phrases first, then single words
+                MULTI_WORD_FILLERS = ["you know"]
+                filler_count = 0
+                for phrase in MULTI_WORD_FILLERS:
+                    filler_count += len(re.findall(r'\b' + re.escape(phrase) + r'\b', normalized))
+                single_fillers = FILLER_WORDS - set(MULTI_WORD_FILLERS)
+                words = re.split(r'\W+', normalized)
+                filler_count += sum(1 for w in words if w in single_fillers)
                 try:
                     await agent.send_custom_event({
                         "type": "transcript",

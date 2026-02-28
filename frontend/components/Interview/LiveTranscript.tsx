@@ -16,7 +16,7 @@ export default function LiveTranscript() {
   }, [transcript, partialTranscript]);
 
   const highlightFillerWords = (text: string) => {
-    const fillerWords = ['umm', 'uh', 'like', 'you know', 'basically', 'actually'];
+    const fillerWords = ['umm', 'hmm', 'uh', 'like', 'you know', 'basically', 'actually', 'literally', 'right', 'so'];
     let result = text;
     fillerWords.forEach((word) => {
       const regex = new RegExp(`\\b${word}\\b`, 'gi');
