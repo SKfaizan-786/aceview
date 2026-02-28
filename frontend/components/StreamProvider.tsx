@@ -84,6 +84,20 @@ export default function StreamProvider({ children }: { children: React.ReactNode
                         if (typeof payload.pace_score === 'number') {
                             store.updateMetrics({ speechPaceScore: payload.pace_score });
                         }
+                        // Filler word nudge at thresholds 5 / 10 / 15
+                        const fillerNudgeThresholds = [5, 10, 15];
+                        const totalFillers = store.metrics.fillerWordCount;
+                        for (const threshold of fillerNudgeThresholds) {
+                            if (totalFillers >= threshold && totalFillers < threshold + (payload.filler_count ?? 0) + 1) {
+                                const msgs: Record<number, string> = {
+                                    5: "You've used 5 filler words — try pausing briefly instead of saying 'um' or 'like'",
+                                    10: "10 filler words so far — take a breath before answering to speak more clearly",
+                                    15: "15 filler words used — slow down and speak with intention, one idea at a time",
+                                };
+                                if (msgs[threshold]) store.addAiNudge(msgs[threshold]);
+                                break;
+                            }
+                        }
                     } else if (payload.type === 'ai_nudge') {
                         if (payload.message) {
                             store.addAiNudge(payload.message);

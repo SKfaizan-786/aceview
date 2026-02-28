@@ -20,8 +20,8 @@ function ActiveVideoPreview({ ringColor }: { ringColor: string }) {
   // happens naturally before the AI is invited (StreamProvider waits 2500ms).
   useEffect(() => {
     if (call) {
-      call.camera.enable().catch(() => {});
-      call.microphone.enable().catch(() => {});
+      call.camera.enable().catch(() => { });
+      call.microphone.enable().catch(() => { });
     }
   }, [call]);
 
@@ -83,34 +83,50 @@ export default function VideoPreview() {
   const ringColor = confidenceState === 'high' ? '#00b894'
     : confidenceState === 'medium' ? '#fdcb6e' : '#e17055';
 
-  return (
-    <div
-      className="neu-inset r-neu-lg relative w-full aspect-video overflow-hidden bg-[#e0e5ec]"
-      style={{ border: `4px solid ${ringColor}`, boxShadow: `inset 4px 4px 8px #b8bec7, inset -4px -4px 8px #ffffff, 0 0 20px ${ringColor}33` }}
-    >
-      {/* Confidence badge — always visible */}
-      <div className="neu-sm rounded-full absolute top-4 left-4 px-4 py-2 z-10 bg-[#e0e5ec]/80 backdrop-blur-sm">
-        <span className="text-sm font-bold tracking-wider uppercase" style={{ color: ringColor }}>
-          {confidenceState}
-        </span>
-      </div>
+  // Pulse speed: calm for HIGH, moderate for MEDIUM, urgent for LOW
+  const pulseSpeed = confidenceState === 'high' ? '4s'
+    : confidenceState === 'medium' ? '2.5s' : '1.2s';
+  const pulseIntensity = confidenceState === 'high' ? '15px'
+    : confidenceState === 'medium' ? '22px' : '30px';
 
-      {isSessionActive ? (
-        // ActiveVideoPreview will only be reached when StreamProvider has already
-        // wrapped children in <StreamVideo><StreamCall>, so all stream hooks are valid.
-        <ActiveVideoPreview ringColor={ringColor} />
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#e0e5ec]">
-          <div className="text-center">
-            <div className="neu rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-              <CameraOff className="w-10 h-10 text-[#b2bec3]" />
-            </div>
-            <p className="text-[#636e72] font-medium">Session not started</p>
-            <p className="text-[#b2bec3] text-sm mt-1">Click Start Session to connect</p>
-          </div>
+  return (
+    <>
+      <style>{`
+        @keyframes confidence-pulse {
+          0%, 100% { box-shadow: inset 4px 4px 8px #b8bec7, inset -4px -4px 8px #ffffff, 0 0 8px ${ringColor}44; }
+          50%       { box-shadow: inset 4px 4px 8px #b8bec7, inset -4px -4px 8px #ffffff, 0 0 ${pulseIntensity} ${ringColor}99; }
+        }
+      `}</style>
+      <div
+        className="neu-inset r-neu-lg relative w-full aspect-video overflow-hidden bg-[#e0e5ec]"
+        style={{
+          border: `4px solid ${ringColor}`,
+          animation: `confidence-pulse ${pulseSpeed} ease-in-out infinite`,
+        }}
+      >
+        {/* Confidence badge — always visible */}
+        <div className="neu-sm rounded-full absolute top-4 left-4 px-4 py-2 z-10 bg-[#e0e5ec]/80 backdrop-blur-sm">
+          <span className="text-sm font-bold tracking-wider uppercase" style={{ color: ringColor }}>
+            {confidenceState}
+          </span>
         </div>
-      )}
-    </div>
+
+        {isSessionActive ? (
+          // ActiveVideoPreview will only be reached when StreamProvider has already
+          // wrapped children in <StreamVideo><StreamCall>, so all stream hooks are valid.
+          <ActiveVideoPreview ringColor={ringColor} />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#e0e5ec]">
+            <div className="text-center">
+              <div className="neu rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                <CameraOff className="w-10 h-10 text-[#b2bec3]" />
+              </div>
+              <p className="text-[#636e72] font-medium">Session not started</p>
+              <p className="text-[#b2bec3] text-sm mt-1">Click Start Session to connect</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
-
