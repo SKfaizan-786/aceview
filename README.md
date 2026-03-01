@@ -15,8 +15,7 @@ Practice interviews with an AI coach that *sees* you, *hears* you, and gives you
 [![Gemini](https://img.shields.io/badge/Gemini-2.0%20Flash-4285F4?style=flat-square&logo=google)](https://ai.google.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
-<!-- 📸 Add banner screenshot here -->
-<!-- ![AceView Demo](docs/banner.png) -->
+[![AceView Landing Page](screenshots/Landing%20page.png)](https://aceview-murex.vercel.app)
 
 [🚀 Start Practising](#-quick-start) · [📖 Features](#-features) · [🏗️ Architecture](#%EF%B8%8F-architecture) · [🎬 Demo](#-demo)
 
@@ -221,10 +220,31 @@ Open [http://localhost:3000](http://localhost:3000) 🎉
 
 ## 🎬 Demo
 
-<!-- 🎥 Add demo video link here -->
-<!-- [![AceView Demo](docs/thumbnail.png)](https://youtube.com/watch?v=YOUR_LINK) -->
+[![AceView Demo Video](https://img.youtube.com/vi/PQ_nZ8KGVYQ/maxresdefault.jpg)](https://youtu.be/PQ_nZ8KGVYQ)
 
-*Demo video coming soon.*
+▶️ **[Watch Full Demo on YouTube](https://youtu.be/PQ_nZ8KGVYQ)**
+
+---
+
+## 📸 Screenshots
+
+### 🏠 Landing Page
+![Landing Page](screenshots/Landing%20page.png)
+
+### 🟢 Live Session — HIGH Confidence (Great Posture & Eye Contact)
+![Great Posture](screenshots/Great%20posture.png)
+
+### 🤖 AI Nudges Firing — Bad Posture Detected
+![AI Nudges](screenshots/Appearing%20nudges%20bad%20posture.png)
+
+### 💬 Filler Words Highlighted Live in Transcript
+![Filler Words](screenshots/Filler%20words%20highlighting.png)
+
+### 📊 AI Report Card — Grade & Personalised Feedback
+![Grade Card](screenshots/Grade%20card.png)
+
+### 📈 Dashboard — Session History & Progress
+![Dashboard](screenshots/Dashbaord.png)
 
 ---
 
