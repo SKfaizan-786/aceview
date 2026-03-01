@@ -228,13 +228,10 @@ Open [http://localhost:3000](http://localhost:3000) 🎉
 
 ## 📸 Screenshots
 
-### 🏠 Landing Page
-![Landing Page](screenshots/Landing%20page.png)
-
 ### 🟢 Live Session — HIGH Confidence (Great Posture & Eye Contact)
 ![Great Posture](screenshots/Great%20posture.png)
 
-### 🤖 AI Nudges Firing — Bad Posture Detected
+### 👁️ Bad Eye Contact — AI Nudge Firing
 ![AI Nudges](screenshots/Appearing%20nudges%20bad%20posture.png)
 
 ### 💬 Filler Words Highlighted Live in Transcript
